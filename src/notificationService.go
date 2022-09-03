@@ -5,8 +5,9 @@ import (
 )
 
 type EmailDetails struct {
-	emailAddress []string
+	emailAddress string
 	message      string
+	html         bool
 }
 
 // - - - Depedencies - - - //

@@ -5,19 +5,16 @@ import "os"
 func main() {
 	es := NewEmailService(
 		emailConfig{
-			from: os.Getenv("smtp_from"),
-			pwd:  os.Getenv("smtp_pwd"),
-			host: os.Getenv("smtp_host"),
-			port: os.Getenv("smtp_port"),
+			sendGridApiKey: os.Getenv("SENDGRID_API_KEY"),
 		})
 	ss := &smsService{}
-	println(os.Getenv("smtp_from"))
 	ns := notificationService{emailService: es, smsService: ss}
 
 	// Test email
 	ed := EmailDetails{
-		message:      "test from notification API",
-		emailAddress: []string{"tommi.teetee@hotmail.com"},
+		message:      "<h1>test from notification API</h1>",
+		emailAddress: "<testemail@example.com>",
+		html:         true,
 	}
 
 	ns.sendEmail(ed)
