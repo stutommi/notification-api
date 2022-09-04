@@ -17,33 +17,23 @@ type SendMailResponse struct {
 }
 
 type emailConfig struct {
-	sendGridApiKey string
+	sendGridApiKey    string
+	emailSenderDomain string
 }
 
 type emailService struct {
 	cfg emailConfig
 }
 
+// Send email
 func (es emailService) Send(ed EmailDetails) error {
-	email, adressErr := es.validateEmail(ed.emailAddress)
-	if adressErr != nil {
-		return fmt.Errorf("invalid email address: %s", adressErr.Error())
-	}
-
-	from := mail.NewEmail("musignalis", "tommi.teetee@hotmail.com")
-	subject := "Sending with SendGrid is Fun"
-	to := mail.NewEmail(email.Name, email.Address)
-
-	var message *mail.SGMailV3
-	if ed.html {
-		message = mail.NewSingleEmail(from, subject, to, "", ed.message)
-	} else {
-		message = mail.NewSingleEmail(from, subject, to, ed.message, "")
+	message, msgCreationError := es.createEmail(ed)
+	if msgCreationError != nil {
+		return fmt.Errorf("error creating email: %s", msgCreationError.Error())
 	}
 
 	client := sendgrid.NewSendClient(es.cfg.sendGridApiKey)
 	response, err := client.Send(message)
-
 	if err != nil {
 		return fmt.Errorf("error sending email: %s", err.Error())
 	} else if response.StatusCode != 202 {
@@ -55,11 +45,33 @@ func (es emailService) Send(ed EmailDetails) error {
 	return nil
 }
 
+// Validate email address
 func (es emailService) validateEmail(emailAddress string) (*mail.Email, error) {
 	email, err := mail.ParseEmail(emailAddress)
 	return email, err
 }
 
+// Create email message
+func (es emailService) createEmail(ed EmailDetails) (*mail.SGMailV3, error) {
+	email, adressErr := es.validateEmail(ed.emailAddress)
+	if adressErr != nil {
+		return nil, fmt.Errorf("invalid email address: %s", adressErr.Error())
+	}
+
+	from := mail.NewEmail(ed.from, es.cfg.emailSenderDomain)
+	to := mail.NewEmail(email.Name, email.Address)
+
+	var emailMessage *mail.SGMailV3
+	if ed.html {
+		emailMessage = mail.NewSingleEmail(from, ed.subject, to, "", ed.message)
+	} else {
+		emailMessage = mail.NewSingleEmail(from, ed.subject, to, ed.message, "")
+	}
+
+	return emailMessage, nil
+}
+
+// initialise and return email service
 func NewEmailService(cfg emailConfig) *emailService {
 	es := emailService{
 		cfg: cfg,
